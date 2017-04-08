@@ -36,7 +36,7 @@ typedef adjacency_list<vecS, vecS, directedS,VertexInformation,EdgeInformation> 
 typedef graph_traits<Graph>::vertex_descriptor Node;
 typedef graph_traits <Graph>::edge_descriptor Edge;
  
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) { // USAGE: -number of nodes - number of edges
   assert(argc == 3);
   unsigned n = atoi(argv[1]);
   double p = atof(argv[2]);
