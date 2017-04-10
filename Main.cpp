@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <unordered_map>
 #include <limits.h>
+#include <chrono>
+#define TIME_TESTE true
 using namespace std;
 
 
@@ -179,73 +181,101 @@ void teste_heap(){
     }
 
 
-void parser(string filePath);
+int parser(string filePath);
 
 //just for the porpuse of testing the heap
 
-int main(){
-    int origem = 1, destino = 45;
-    parser("USA-road-d.NY.gr");
-    Heap heap;
-    unordered_map<int,Node>::iterator got;
-    got = NodesHash.find(origem);
-    vector<pair<int,int> > vizinhos = got->second.adjacent;
+int main(int argc, char *argv[]){
+    if(argc != 4){
+        cout<<"USAGE: SRC(INT) DST(INT)GRAPH_PATH(STRING)"<<endl;
+        exit(-1);
+    }
+    ofstream myfile("tempos.txt",ofstream::app);
+    chrono::system_clock::time_point total; //medição tempo total
+    int num_updates =0,num_deletemin = 0,num_edges;
+    if(TIME_TESTE){
+        total = chrono::system_clock::now();
+    }
     
-    for ( auto it = NodesHash.begin(); it != NodesHash.end(); ++it ){
-        heap.insert(make_pair(INT_MAX,it->second.id)); //INT_MAX para simular o infinito
-    }
-    got = NodesHash.find(origem);
-    if(got == NodesHash.end()){
-        cout<<"Erro, origem invalida"<<endl;
-    }
-    else{
-        vizinhos = got->second.adjacent;
-        got->second.visited = true;
-        got->second.dist = 0;
-        for(int i=0;i<vizinhos.size();i++){
-            got = NodesHash.find(vizinhos[i].first);
-            heap.update(got->second.position,vizinhos[i].second);
+    int origem = atoi(argv[1]), destino = atof(argv[2]);
+    string filePath(argv[3]);
+    num_edges = parser(filePath);
+    if(NodesHash.size()>0){
+        Heap heap;
+        unordered_map<int,Node>::iterator got;
+        got = NodesHash.find(origem);
+        vector<pair<int,int> > vizinhos = got->second.adjacent;
+
+        for ( auto it = NodesHash.begin(); it != NodesHash.end(); ++it ){
+            heap.insert(make_pair(INT_MAX,it->second.id)); //INT_MAX para simular o infinito
         }
-        
-        while(heap.nodes.empty() == false){
-            got = NodesHash.find(heap.nodes[0].second);
-            if(got->second.visited == false){
-                got->second.visited == true;
-                int actualWeight = heap.nodes[0].first;
-                got->second.dist = actualWeight;
-                vizinhos = got->second.adjacent;
-                for(int i=0;i<vizinhos.size();i++){ // aqui faz a parte de testar pra ver se da uptade ou naao
-                    int newWeight = vizinhos[i].second+actualWeight;
-                    int vizinho_position = NodesHash.find(vizinhos[i].first)->second.position;
-                    
-                    if(heap.nodes[vizinho_position].first > newWeight){
-                        heap.update(vizinho_position,newWeight);
+        got = NodesHash.find(origem);
+        if(got == NodesHash.end()){
+            cout<<"Erro, origem invalida"<<endl;
+        }
+        else{
+            vizinhos = got->second.adjacent;
+            got->second.visited = true;
+            got->second.dist = 0;
+            for(int i=0;i<vizinhos.size();i++){
+                got = NodesHash.find(vizinhos[i].first);
+                heap.update(got->second.position,vizinhos[i].second);
+            }
+
+            while(heap.nodes.empty() == false){
+                got = NodesHash.find(heap.nodes[0].second);
+                if(got->second.visited == false){
+                    got->second.visited == true;
+                    int actualWeight = heap.nodes[0].first;
+                    got->second.dist = actualWeight;
+                    vizinhos = got->second.adjacent;
+                    for(int i=0;i<vizinhos.size();i++){ // aqui faz a parte de testar pra ver se da uptade ou naao
+                        int newWeight = vizinhos[i].second+actualWeight;
+                        int vizinho_position = NodesHash.find(vizinhos[i].first)->second.position;
+
+                        if(heap.nodes[vizinho_position].first > newWeight){
+                            heap.update(vizinho_position,newWeight);
+                            num_updates++;
+                        }
                     }
                 }
+                if(heap.nodes.empty() == false){
+                    heap.deleteMin();
+                    num_deletemin++;
+                }
             }
-            if(heap.nodes.empty() == false)
-                heap.deleteMin();
-        }
-        cout<<"distancia "<< NodesHash.find(destino)->second.dist<<endl;
-        
-    }
-//    heap.printHeap(0);
-//    for (auto& x: NodesHash){
-//        cout<<x.second.id<<endl;
-//        heap.insert(INT_MAX,x.second.id);
-//    }
-//    
-//    for (auto& x: NodesHash){
-//         myfile <<" "<< x.first << ": " << x.second.id <<" "<< x.second.adjacent.size()<<"  "<<x.second.position << std::endl;
-//    } // teste da NodeHash;;;
-       
-         
+            if(NodesHash.find(destino)->second.dist != INT_MAX)
+                cout<<NodesHash.find(destino)->second.dist<<endl;
+            else
+                cout<<"inf"<<endl;
 
+
+        }
+    //    heap.printHeap(0);
+    //    for (auto& x: NodesHash){
+    //        cout<<x.second.id<<endl;
+    //        heap.insert(INT_MAX,x.second.id);
+    //    }
+    //    
+    //    for (auto& x: NodesHash){
+    //         myfile <<" "<< x.first << ": " << x.second.id <<" "<< x.second.adjacent.size()<<"  "<<x.second.position << std::endl;
+    //    } // teste da NodeHash;;;
+
+        if(TIME_TESTE){
+
+            myfile<<"Tempo total: "<<chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now()-total).count()<<" Numero de nodes: "<<NodesHash.size()<<" Numero de arestas: "<<num_edges<< endl;
+            myfile<<"Numero de inserts: "<<NodesHash.size()<<" Numero de deleteMin: "<<num_deletemin<<" Numero de update: "<<num_updates<<endl;
+        }
+    }
+    else
+        cout<<"inf"<<endl;
+ 
     return 0;
 }
 
-void parser(string filePath){
+int parser(string filePath){
     ifstream inputFile( filePath, ifstream::in );
+    int num_edges= 0;
     if ( !inputFile.is_open() ) {
                     cout << "Could not open input file." << endl;
                     exit(-1);
@@ -253,12 +283,13 @@ void parser(string filePath){
     else
     {
 	string token;
-        while(token != "a"){
+        while(token != "a" && inputFile.eof()){
             (inputFile>> token);
         }
         int id,dest, weight;
         std::unordered_map<int,Node>::iterator got;
         while(token == "a"){
+            num_edges++;
             inputFile>> token;
             id = atoi( token.c_str() );
             inputFile>> token;
@@ -280,4 +311,5 @@ void parser(string filePath){
             }
         }
     }
+    return num_edges;
 }
